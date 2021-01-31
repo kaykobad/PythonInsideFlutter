@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_ffmpeg/flutter_ffmpeg.dart';
+import 'package:path_provider/path_provider.dart';
 
 void main() {
   runApp(MyApp());
@@ -30,6 +34,9 @@ class _MyHomePageState extends State<MyHomePage> {
   String _textContent;
   String _buttonText1;
   String _buttonText2;
+  final FlutterFFmpeg _flutterFFmpeg = FlutterFFmpeg();
+  String _outAudioPath;
+  String _outVideoPath;
 
   @override
   void initState() {
@@ -40,6 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _buttonText1 = "Select Video";
     _buttonText2 = "Process Video";
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -107,6 +115,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       onPressed: () async {
         print("Process button pressed");
+        _getPaths();
       },
     );
   }
@@ -120,5 +129,23 @@ class _MyHomePageState extends State<MyHomePage> {
         fontSize: 16.0,
       ),
     );
+  }
+
+  void _getPaths() async {
+    Directory baseDir;
+
+    if (Platform.isAndroid) {
+      baseDir = await getExternalStorageDirectory();
+    } else {
+      baseDir = await getApplicationDocumentsDirectory();
+    }
+
+    _outAudioPath = baseDir.path + '/' + DateTime.now().toString().replaceAll(" ", "_").replaceAll(".", "") + '.wav';
+    _outVideoPath = baseDir.path + '/' + DateTime.now().toString().replaceAll(" ", "_").replaceAll(".", "") + '.mp4';
+
+    print(_outAudioPath);
+    print(_outVideoPath);
+    
+    _flutterFFmpeg.execute("-i $_videoPath $_outAudioPath").then((value) => print(value));
   }
 }
