@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -51,6 +52,7 @@ class _MyHomePageState extends State<MyHomePage> {
           children: <Widget>[
             Text(
               _textContent,
+              textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.deepPurple,
                 fontSize: 16.0,
@@ -70,8 +72,18 @@ class _MyHomePageState extends State<MyHomePage> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(18.0),
               ),
-              onPressed: () {
+              onPressed: () async {
                 print("button pressed");
+                FilePickerResult result = await FilePicker.platform.pickFiles(type: FileType.video);
+                if(result != null) {
+                  _videoPath = result.files.single.path;
+                  setState(() {
+                    _isVideoSelected = true;
+                    _textContent = "Video Path: $_videoPath";
+                  });
+                } else {
+                  print("You cancelled!");
+                }
               },
             ),
           ],
