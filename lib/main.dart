@@ -36,7 +36,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
     _isVideoSelected = false;
     _videoPath = "";
-    _textContent = "Please select a vedio to process.";
+    _textContent = "Please select a video to process.";
     _buttonText1 = "Select Video";
     _buttonText2 = "Process Video";
   }
@@ -50,44 +50,74 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            Text(
-              _textContent,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.deepPurple,
-                fontSize: 16.0,
-              ),
-            ),
-            SizedBox(height: 10.0),
-            RaisedButton(
-              padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 20.0),
-              color: Colors.deepPurple,
-              child: Text(
-                _isVideoSelected ? _buttonText2 : _buttonText1,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16.0,
-                ),
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(18.0),
-              ),
-              onPressed: () async {
-                print("button pressed");
-                FilePickerResult result = await FilePicker.platform.pickFiles(type: FileType.video);
-                if(result != null) {
-                  _videoPath = result.files.single.path;
-                  setState(() {
-                    _isVideoSelected = true;
-                    _textContent = "Video Path: $_videoPath";
-                  });
-                } else {
-                  print("You cancelled!");
-                }
-              },
-            ),
+            _getText(),
+            SizedBox(height: 16.0),
+            _getSelectionButton(),
+            SizedBox(height: 16.0),
+            if(_isVideoSelected) _getProcessButton(),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _getSelectionButton() {
+    return RaisedButton(
+      padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 28.0),
+      color: Colors.deepPurple,
+      child: Text(
+        _buttonText1,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16.0,
+        ),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18.0),
+      ),
+      onPressed: () async {
+        print("Select button pressed");
+        FilePickerResult result = await FilePicker.platform.pickFiles(type: FileType.video);
+        if(result != null) {
+          _videoPath = result.files.single.path;
+          setState(() {
+            _isVideoSelected = true;
+            _textContent = "Video Path: $_videoPath";
+          });
+        } else {
+          print("You cancelled!");
+        }
+      },
+    );
+  }
+
+  Widget _getProcessButton() {
+    return RaisedButton(
+      padding: EdgeInsets.symmetric(vertical: 12.0, horizontal: 20.0),
+      color: Colors.deepPurple,
+      child: Text(
+        _buttonText2,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 16.0,
+        ),
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(18.0),
+      ),
+      onPressed: () async {
+        print("Process button pressed");
+      },
+    );
+  }
+
+  Text _getText() {
+    return Text(
+      _textContent,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: Colors.deepPurple,
+        fontSize: 16.0,
       ),
     );
   }
