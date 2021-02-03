@@ -164,9 +164,11 @@ class _MyHomePageState extends State<MyHomePage> {
     } else {
       baseDir = await getApplicationDocumentsDirectory();
     }
+    final myPath = '${baseDir.path}/EditedVideos' ;
+    final myDir = await new Directory(myPath).create();
 
-    _outAudioPath = baseDir.path + '/' + DateTime.now().toString().replaceAll(" ", "_").replaceAll(".", "") + '.wav';
-    _outVideoPath = baseDir.path + '/' + DateTime.now().toString().replaceAll(" ", "_").replaceAll(".", "") + '.mp4';
+    _outAudioPath = myDir.path + '/' + DateTime.now().toString().replaceAll(" ", "_").replaceAll(".", "") + '.wav';
+    _outVideoPath = myDir.path + '/' + DateTime.now().toString().replaceAll(" ", "_").replaceAll(".", "") + '.mp4';
 
     print(_outAudioPath);
     print(_outVideoPath);
@@ -200,6 +202,8 @@ class _MyHomePageState extends State<MyHomePage> {
         String v = response.data['details'];
         _flutterFFmpeg.execute('-i $_videoPath -filter_complex "' + v + '" -map "[out]" "$_outVideoPath"').then((value) async {
           if (value == 0) {
+            File f = File(_outAudioPath);
+            await f.delete();
             await EasyLoading.dismiss();
             EasyLoading.showSuccess("Success!", duration: Duration(seconds: 3), dismissOnTap: true);
             setState(() {
