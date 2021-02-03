@@ -5,7 +5,9 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_ffmpeg/flutter_ffmpeg.dart';
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   configLoading();
@@ -157,18 +159,19 @@ class _MyHomePageState extends State<MyHomePage> {
   void _getPaths() async {
     EasyLoading.show(status: "Processing file...", dismissOnTap: false);
     
-    Directory baseDir;
+    Directory baseDir = await getTemporaryDirectory();
 
-    if (Platform.isAndroid) {
-      baseDir = await getExternalStorageDirectory();
-    } else {
-      baseDir = await getApplicationDocumentsDirectory();
-    }
-    final myPath = '${baseDir.path}/EditedVideos' ;
-    final myDir = await new Directory(myPath).create();
+    // if (Platform.isAndroid) {
+    //   baseDir = await getExternalStorageDirectory();
+    // } else {
+    //   baseDir = await getApplicationDocumentsDirectory();
+    // }
+    // final myPath = '${baseDir.path}/EditedVideos' ;
+    // final myDir = await new Directory(myPath).create();
 
-    _outAudioPath = myDir.path + '/' + DateTime.now().toString().replaceAll(" ", "_").replaceAll(".", "") + '.wav';
-    _outVideoPath = myDir.path + '/' + DateTime.now().toString().replaceAll(" ", "_").replaceAll(".", "") + '.mp4';
+    String _preFix = DateTime.now().toString().replaceAll(" ", "_").replaceAll(".", "");
+    _outAudioPath = baseDir.path + '/' + _preFix + '.wav';
+    _outVideoPath = baseDir.path + '/' + _preFix + '.mp4';
 
     print(_outAudioPath);
     print(_outVideoPath);
@@ -202,13 +205,31 @@ class _MyHomePageState extends State<MyHomePage> {
         String v = response.data['details'];
         _flutterFFmpeg.execute('-i $_videoPath -filter_complex "' + v + '" -map "[out]" "$_outVideoPath"').then((value) async {
           if (value == 0) {
+            // Copying file to Image Gallery
+            if (await Permission.storage.request().isGranted) {
+              final result = await ImageGallerySaver.saveFile(_outVideoPath);
+              print(result);
+
+              // Show success dialog
+              await EasyLoading.dismiss();
+              EasyLoading.showSuccess("Success!", duration: Duration(seconds: 3), dismissOnTap: true);
+              setState(() {
+                _textContent = result['isSuccess'] ? "Video file saved at Video Editor folder." : "Something went wrong during saving video.";
+              });
+            } else {
+              // Show success dialog
+              await EasyLoading.dismiss();
+              EasyLoading.showError("Error! Storage permission denied!", duration: Duration(seconds: 3), dismissOnTap: true);
+              setState(() {
+                _textContent = "Video storage permission denied!";
+              });
+            }
+
+            // Deleting temporary files
             File f = File(_outAudioPath);
             await f.delete();
-            await EasyLoading.dismiss();
-            EasyLoading.showSuccess("Success!", duration: Duration(seconds: 3), dismissOnTap: true);
-            setState(() {
-              _textContent = "Video file saved at: $_outVideoPath";
-            });
+            f = File(_outVideoPath);
+            await f.delete();
           } else {
             await EasyLoading.dismiss();
             EasyLoading.showError("FFMPEG video conversion failed. Try again.", duration: Duration(seconds: 3), dismissOnTap: true);

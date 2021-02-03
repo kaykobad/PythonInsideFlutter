@@ -28,6 +28,8 @@ dependencies:
   path_provider: ^1.6.27
   dio: ^3.0.10
   flutter_easyloading: ^2.2.2
+  image_gallery_saver: ^1.6.7
+  permission_handler: ^5.0.1+1
 
 
   # The following adds the Cupertino Icons font to your application.
