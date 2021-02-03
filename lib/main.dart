@@ -1,12 +1,31 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_easyloading/flutter_easyloading.dart';
 import 'package:flutter_ffmpeg/flutter_ffmpeg.dart';
 import 'package:path_provider/path_provider.dart';
 
 void main() {
+  configLoading();
   runApp(MyApp());
+}
+
+void configLoading() {
+  EasyLoading.instance
+    ..displayDuration = const Duration(milliseconds: 5000)
+    ..indicatorType = EasyLoadingIndicatorType.fadingCircle
+    ..loadingStyle = EasyLoadingStyle.custom
+    ..indicatorSize = 45.0
+    ..radius = 10.0
+    ..progressColor = Colors.white
+    ..backgroundColor = Colors.black
+    ..indicatorColor = Colors.white
+    ..textColor = Colors.white
+    ..maskColor = Colors.blue.withOpacity(0.5)
+    ..userInteractions = true
+    ..dismissOnTap = false;
 }
 
 class MyApp extends StatelessWidget {
@@ -19,6 +38,7 @@ class MyApp extends StatelessWidget {
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
       home: MyHomePage(),
+      builder: EasyLoading.init(),
     );
   }
 }
@@ -37,6 +57,8 @@ class _MyHomePageState extends State<MyHomePage> {
   final FlutterFFmpeg _flutterFFmpeg = FlutterFFmpeg();
   String _outAudioPath;
   String _outVideoPath;
+  Dio _dio;
+  final String _url = "https://ve.mycodeacademia.com/audio/";
 
   @override
   void initState() {
@@ -46,6 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _textContent = "Please select a video to process.";
     _buttonText1 = "Select Video";
     _buttonText2 = "Process Video";
+    _dio = Dio();
   }
 
   @override
@@ -132,6 +155,8 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   void _getPaths() async {
+    EasyLoading.show(status: "Processing file...", dismissOnTap: false);
+    
     Directory baseDir;
 
     if (Platform.isAndroid) {
@@ -146,6 +171,54 @@ class _MyHomePageState extends State<MyHomePage> {
     print(_outAudioPath);
     print(_outVideoPath);
     
-    _flutterFFmpeg.execute("-i $_videoPath $_outAudioPath").then((value) => print(value));
+    _flutterFFmpeg.execute("-i $_videoPath $_outAudioPath").then((value) async {
+      if (value == 0) {
+        _processFurther();
+      } else {
+        await EasyLoading.dismiss();
+        EasyLoading.showError("FFMPEG audio conversion failed. Try again.", duration: Duration(seconds: 3), dismissOnTap: true);
+      }
+    });
+  }
+
+  void _processFurther() async {
+    FormData formData = FormData.fromMap({
+      "audio_file": await MultipartFile.fromFile(_outAudioPath, filename: "upload.wav")
+    });
+    try {
+      Response response = await _dio.post(_url, data: formData);
+
+      print(response.headers);
+      print(response.data);
+      print(response.statusCode);
+      print(response.statusMessage);
+
+      if (response.data['error']) {
+        await EasyLoading.dismiss();
+        EasyLoading.showError(response.data['details'], duration: Duration(seconds: 3), dismissOnTap: true);
+      } else {
+        String v = response.data['details'];
+        _flutterFFmpeg.execute('-i $_videoPath -filter_complex "' + v + '" -map "[out]" "$_outVideoPath"').then((value) async {
+          if (value == 0) {
+            await EasyLoading.dismiss();
+            EasyLoading.showSuccess("Success!", duration: Duration(seconds: 3), dismissOnTap: true);
+            setState(() {
+              _textContent = "Video file saved at: $_outVideoPath";
+            });
+          } else {
+            await EasyLoading.dismiss();
+            EasyLoading.showError("FFMPEG video conversion failed. Try again.", duration: Duration(seconds: 3), dismissOnTap: true);
+          }
+        });
+      }
+    } on SocketException {
+      await EasyLoading.dismiss();
+      EasyLoading.showError("Error! Check your internet connection and try again.", duration: Duration(seconds: 4), dismissOnTap: true);
+    }
+    catch (e) {
+      print(e.toString());
+      await EasyLoading.dismiss();
+      EasyLoading.showError("Error! Something went wrong. Please try again.", duration: Duration(seconds: 4), dismissOnTap: true);
+    }
   }
 }
